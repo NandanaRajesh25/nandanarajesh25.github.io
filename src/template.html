@@ -1,0 +1,815 @@
+<title>FlashMol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: one linear narrative on a single wide 1180px column shared by the title
+   block, the prose, the figures, the tables and the 3D gallery, under a sticky
+   contents bar. */
+:root {
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+  --surface-2: #e9edf3;
+  --fg: #111621;
+  --muted: #58627a;
+  --line: #d9e0e9;
+  --line-strong: #bcc6d4;
+  --accent: #2443c4;
+  --accent-quiet: #e5e9fa;
+  --on-accent: #ffffff;
+  --warm: #bb3524;
+  --ok: #0f7351;
+
+  --f-display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --col: 1180px;
+  --r: 3px;
+  --navh: 44px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #090c12;
+    --surface: #111722;
+    --surface-2: #1a212e;
+    --fg: #e8edf6;
+    --muted: #97a2b8;
+    --line: #222b3a;
+    --line-strong: #374255;
+    --accent: #8ca7ff;
+    --accent-quiet: #192444;
+    --on-accent: #0a0d13;
+    --warm: #ff8878;
+    --ok: #45cea1;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #090c12;
+  --surface: #111722;
+  --surface-2: #1a212e;
+  --fg: #e8edf6;
+  --muted: #97a2b8;
+  --line: #222b3a;
+  --line-strong: #374255;
+  --accent: #8ca7ff;
+  --accent-quiet: #192444;
+  --on-accent: #0a0d13;
+  --warm: #ff8878;
+  --ok: #45cea1;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 17px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: var(--col); margin: 0 auto; padding-inline: 20px; }
+.bleed { max-width: 1180px; margin: 0 auto; padding-inline: 20px; }
+
+h1, h2, h3, h4, .dsp { font-family: var(--f-display); text-wrap: balance; }
+h1 { font-size: clamp(2.1rem, 6.4vw, 3.3rem); line-height: 1.06; margin: 0 0 .5rem; font-weight: 700; letter-spacing: -.015em; }
+h2 { font-size: clamp(1.5rem, 3.6vw, 2rem); line-height: 1.12; margin: 0 0 .2rem; font-weight: 700; letter-spacing: -.01em; }
+h3 { font-size: 1.18rem; line-height: 1.24; margin: 1.7rem 0 .4rem; font-weight: 600; }
+h4 { font-size: 1.02rem; line-height: 1.3; margin: 0 0 .3rem; font-weight: 600; }
+p { margin: 0 0 .85rem; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code, .mono { font-family: var(--f-mono); font-size: .875em; }
+
+.eyebrow {
+  font-family: var(--f-mono); font-size: .685rem; font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+}
+
+/* ---------- sticky contents bar ---------- */
+.nav {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  max-width: 1180px; margin: 0 auto; padding-inline: 20px;
+  height: var(--navh); display: flex; align-items: center; gap: .1rem;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+}
+.nav-inner::-webkit-scrollbar { display: none; }
+.nav-inner .brand {
+  font-family: var(--f-display); font-weight: 700; font-size: .95rem;
+  margin-right: .9rem; flex: 0 0 auto; letter-spacing: -.01em;
+}
+.nav-inner a {
+  flex: 0 0 auto; font-family: var(--f-display); font-size: .82rem; font-weight: 600;
+  color: var(--muted); text-decoration: none; padding: .25rem .5rem; border-radius: 2px;
+  white-space: nowrap;
+}
+.nav-inner a:hover { color: var(--fg); }
+.nav-inner a[aria-current="true"] { color: var(--accent); background: var(--accent-quiet); }
+h2[id], section[id] { scroll-margin-top: calc(var(--navh) + env(safe-area-inset-top, 0px) + 14px); }
+
+/* ---------- masthead ---------- */
+.mast { padding-block: clamp(2rem, 6vw, 3.6rem) 0; }
+.venue {
+  display: inline-flex; align-items: center; gap: .55rem;
+  font-family: var(--f-mono); font-size: .7rem; font-weight: 500;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+  border: 1px solid var(--line-strong); border-radius: 100px;
+  padding: .3rem .7rem; margin-bottom: 1.1rem;
+}
+.venue b { font-weight: 600; color: var(--fg); }
+.sub { font-family: var(--f-display); font-size: clamp(1.05rem, 2.6vw, 1.45rem); color: var(--muted); font-weight: 500; margin: 0 0 1.6rem; max-width: 30ch; }
+.authors { font-size: clamp(1rem, 1.5vw, 1.1rem); line-height: 1.55; margin: 0 0 .7rem; }
+.authors b { font-weight: 600; }
+.affils {
+  display: flex; flex-wrap: wrap; gap: .25rem 1.5rem;
+  font-family: var(--f-mono); font-size: .735rem; line-height: 1.7;
+  color: var(--muted); margin: 0 0 .55rem;
+}
+.affils i, .notes i {
+  font-style: normal; color: var(--line-strong); font-weight: 600;
+  margin-right: .4rem;
+}
+.notes { font-family: var(--f-mono); font-size: .72rem; color: var(--muted); margin: 0 0 1.3rem; }
+.links { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 2.2rem; }
+.btn {
+  font-family: var(--f-display); font-size: .86rem; font-weight: 600;
+  padding: .44rem .85rem; border: 1px solid var(--line-strong);
+  border-radius: var(--r); background: var(--surface); color: var(--fg);
+  text-decoration: none; cursor: pointer; line-height: 1.4;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-q { background: transparent; }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-bottom: .7rem; }
+.stat { background: var(--surface); padding: .85rem .8rem; min-width: 0; }
+.stat .v { font-family: var(--f-display); font-size: clamp(1.15rem, 3.4vw, 1.6rem); font-weight: 700; line-height: 1.05; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.stat .k { font-family: var(--f-mono); font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: .3rem; line-height: 1.4; }
+@media (max-width: 620px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.statnote { font-family: var(--f-mono); font-size: .7rem; color: var(--muted); margin-bottom: 0; }
+
+/* ---------- sections ---------- */
+.sec { padding-block: clamp(2.2rem, 5.5vw, 3.4rem); border-top: 1px solid var(--line); }
+.sec-head { margin-bottom: 1.3rem; }
+.sec-head .eyebrow { display: block; margin-bottom: .45rem; }
+.sec-lede { color: var(--muted); font-size: 1.02rem; margin: .5rem 0 0; }
+
+.bullets { margin: 0 0 .85rem; padding-left: 0; list-style: none; display: grid; gap: .6rem; }
+.bullets li { position: relative; padding-left: 2.1rem; min-width: 0; }
+.bullets li::before {
+  content: attr(data-n); position: absolute; left: 0; top: .4rem;
+  font-family: var(--f-mono); font-size: .72rem; font-weight: 600;
+  color: var(--accent);
+}
+.bullets.plain li { padding-left: 1.45rem; }
+.bullets.plain li::before { content: "\2014"; color: var(--line-strong); }
+.bullets li b { font-weight: 600; }
+
+/* ---------- 3D gallery ---------- */
+.viewer-main {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; max-width: 100%;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden;
+}
+.viewer-main canvas { display: block; }
+.vm-tag { position: absolute; left: 0; top: 0; pointer-events: none; font-family: var(--f-mono); font-size: .76rem; font-weight: 500; padding: .5rem .7rem; color: var(--fg); }
+.vm-tag .f { font-size: 1.02rem; font-weight: 600; letter-spacing: .01em; }
+.vm-tag .d { color: var(--muted); font-size: .68rem; margin-top: .15rem; }
+.vm-hint { position: absolute; right: 0; bottom: 0; pointer-events: none; font-family: var(--f-mono); font-size: .64rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: .5rem .7rem; }
+
+.controls { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: .8rem 0 1rem; }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r); overflow: hidden; }
+.seg button { font-family: var(--f-display); font-size: .8rem; font-weight: 600; padding: .34rem .7rem; border: 0; background: var(--surface); color: var(--muted); cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent-quiet); color: var(--accent); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: .4rem; }
+.chip { font-family: var(--f-mono); font-size: .7rem; font-weight: 500; padding: .26rem .48rem; border: 1px solid var(--line); border-radius: 2px; background: var(--surface); color: var(--muted); cursor: pointer; line-height: 1.3; }
+.chip:hover { border-color: var(--line-strong); color: var(--fg); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.chip .st { color: var(--ok); }
+.chip[aria-pressed="true"] .st { color: var(--on-accent); }
+
+.legend { display: flex; flex-wrap: wrap; gap: .9rem; font-family: var(--f-mono); font-size: .7rem; color: var(--muted); margin: 1rem 0 0; }
+.legend span { display: inline-flex; align-items: center; gap: .33rem; }
+.legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; border: 1px solid rgba(128,128,128,.45); }
+
+.grid-wrap { position: relative; margin-top: 1.1rem; }
+#molgrid { width: 100%; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); overflow: hidden; }
+.cell-label { position: absolute; pointer-events: none; font-family: var(--f-mono); font-size: .68rem; font-weight: 500; color: var(--fg); padding: .3rem .4rem; line-height: 1.35; }
+.cell-label .n { color: var(--muted); font-size: .61rem; display: block; }
+.nojs { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); padding: 1rem; }
+
+/* ---------- math, figures, tables ---------- */
+.eq {
+  font-family: var(--f-mono); font-size: .8rem; line-height: 1.75;
+  background: var(--surface); border: 1px solid var(--line); border-left: 2px solid var(--line-strong);
+  border-radius: 0 var(--r) var(--r) 0; padding: .6rem .8rem; margin: .7rem 0 .85rem; overflow-x: auto;
+}
+.eq i { font-family: var(--f-body); font-style: italic; font-size: 1.06em; }
+.eq .op { color: var(--muted); }
+.eq .lbl { display: block; font-family: var(--f-display); font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: .2rem; }
+
+figure { margin: 1.7rem auto; max-width: 680px; }
+figure img { display: block; width: 100%; max-width: 100%; height: auto; background: #fff; border: 1px solid var(--line); border-radius: var(--r); }
+figcaption { font-size: .82rem; color: var(--muted); margin-top: .55rem; line-height: 1.55; }
+figcaption b { color: var(--fg); font-weight: 600; font-family: var(--f-display); }
+
+.tbl-scroll { overflow-x: auto; margin: 1.3rem 0 .5rem; border: 1px solid var(--line); border-radius: var(--r); }
+table { border-collapse: collapse; width: 100%; font-family: var(--f-mono); font-size: .745rem; min-width: 560px; }
+caption { text-align: left; font-family: var(--f-display); font-size: .9rem; font-weight: 600; padding: .7rem .8rem .5rem; color: var(--fg); }
+th, td { padding: .36rem .6rem; text-align: right; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-weight: 600; color: var(--muted); font-size: .68rem; letter-spacing: .05em; text-transform: uppercase; border-bottom: 1px solid var(--line-strong); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.ours td { background: var(--accent-quiet); font-weight: 600; }
+tr.ours td:first-child { color: var(--accent); }
+tr.rule td { border-top: 1px solid var(--line-strong); }
+td.best { color: var(--accent); font-weight: 600; }
+.tbl-note { font-family: var(--f-mono); font-size: .68rem; color: var(--muted); padding: 0 .8rem .7rem; }
+
+.minitbl { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 1.3rem 0; }
+.minitbl table { min-width: 0; font-size: .72rem; }
+.minitbl > div { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; }
+
+pre.cite {
+  font-family: var(--f-mono); font-size: .74rem; line-height: 1.7;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: .9rem 1rem; overflow-x: auto; margin: 0 0 .7rem; white-space: pre; tab-size: 2;
+}
+footer { border-top: 1px solid var(--line); padding-block: 1.8rem 2.6rem; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+footer p { margin-bottom: .4rem; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<nav class="nav" aria-label="Contents">
+  <div class="nav-inner">
+    <span class="brand">FlashMol</span>
+    <a href="#molecules">Molecules</a>
+    <a href="#abstract">Abstract</a>
+    <a href="#contributions">Contributions</a>
+    <a href="#background">Background</a>
+    <a href="#method">Method</a>
+    <a href="#respacing">Respacing</a>
+    <a href="#diversity">Diversity</a>
+    <a href="#results">Results</a>
+    <a href="#conditional">Conditional</a>
+    <a href="#ablations">Ablations</a>
+    <a href="#limitations">Limitations</a>
+    <a href="#cite">Citation</a>
+  </div>
+</nav>
+
+<main>
+<header class="mast bleed">
+  <div class="venue"><b>NeurIPS 2026</b> <span>&middot;</span> <span>arXiv 2605.07020</span></div>
+  <h1>FlashMol</h1>
+  <p class="sub">High-Quality Molecule Generation in as Few as Four Steps</p>
+  <p class="authors">
+    <b>Xinyuan Wei</b><sup>1,2*</sup> &nbsp; <b>Zian Li</b><sup>1,3*</sup> &nbsp;
+    <b>Shaoheng Yan</b><sup>1,2</sup> &nbsp; <b>Cai Zhou</b><sup>4</sup> &nbsp;
+    <b>Muhan Zhang</b><sup>1,5&dagger;</sup>
+  </p>
+  <div class="affils">
+    <span><i>1</i>Institute for Artificial Intelligence, Peking University</span>
+    <span><i>2</i>Yuanpei College, Peking University</span>
+    <span><i>3</i>School of Intelligence Science and Technology, Peking University</span>
+    <span><i>4</i>EECS, Massachusetts Institute of Technology</span>
+    <span><i>5</i>State Key Laboratory of General Artificial Intelligence, Peking University</span>
+  </div>
+  <p class="notes"><i>*</i>Equal contribution &nbsp;&middot;&nbsp; <i>&dagger;</i>Correspondence: muhan@pku.edu.cn</p>
+  <div class="links">
+    <a class="btn" href="https://arxiv.org/abs/2605.07020">Paper</a>
+    <a class="btn btn-q" href="#molecules">Generated molecules</a>
+    <a class="btn btn-q" href="#results">Results</a>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">4</div><div class="k">steps, lower bound</div></div>
+    <div class="stat"><div class="v">83.89%</div><div class="k">QM9 mol stable @ 4 NFE</div></div>
+    <div class="stat"><div class="v">94.87%</div><div class="k">QM9 mol stable @ 8 NFE</div></div>
+    <div class="stat"><div class="v">250&times;</div><div class="k">faster than the teacher</div></div>
+  </div>
+  <p class="statnote">From Table 1. The 1000-step GeoLDM teacher reaches 89.4% molecule stability on QM9.</p>
+</header>
+
+<!-- ============ MOLECULES ============ -->
+<section class="sec" id="molecules">
+<div class="bleed">
+  <div class="sec-head">
+    <span class="eyebrow">Samples</span>
+    <h2>Molecules from the 8-step model</h2>
+    <p class="sec-lede">Forty QM9 molecules generated for this page by a FlashMol student running 8 sampling steps, where the GeoLDM teacher it was distilled from needs 1000. Drag to rotate, scroll to zoom. Nothing here was filtered by hand &mdash; these are the raw contents of one sampling run, decoded to coordinates and rendered from the model's own output. How the model gets there is <a href="#respacing">further down</a>.</p>
+  </div>
+
+  <p style="font-size:.88rem;color:var(--muted);margin-bottom:1.5rem">
+    The model behind these samples reproduces the paper's 8-NFE row to within about a tenth of a point on every metric: Table 1 reports 99.55 / 94.87 / 96.97 / 87.51 for atom stability, molecule stability, validity and valid-and-unique, and two independent evaluation runs of 10,000 samples give 99.55 / 94.87&ndash;94.92 / 96.89 / 87.45. So the molecules below come from a model performing at the paper's reported 8-step level, measured the same way &mdash; though the sampling run that produced these forty is its own small draw, far too small to carry those statistics itself.
+  </p>
+
+  <div class="viewer-main" id="featured">
+    <div class="nojs" id="featured-fallback">Loading 3D viewer&hellip;</div>
+    <div class="vm-tag" id="vm-tag" hidden><div class="f" id="vm-formula"></div><div class="d" id="vm-detail"></div></div>
+    <div class="vm-hint">drag to rotate &middot; scroll to zoom</div>
+  </div>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Representation">
+      <button type="button" data-style="bs" aria-pressed="true">Ball &amp; stick</button>
+      <button type="button" data-style="stick" aria-pressed="false">Stick</button>
+      <button type="button" data-style="sphere" aria-pressed="false">Space-fill</button>
+    </div>
+    <button class="btn" type="button" id="spin-btn" aria-pressed="false">Spin</button>
+    <button class="btn" type="button" id="copy-btn">Copy XYZ</button>
+    <span class="mono" id="copy-note" style="color:var(--muted);font-size:.72rem"></span>
+  </div>
+
+  <p class="eyebrow" style="margin-bottom:.45rem">Pick a molecule &mdash; 40 samples, <span style="color:var(--ok)">&#9679;</span> marks the ten drawn from the stability-filtered pass</p>
+  <div class="chips" id="chips"></div>
+
+  <div class="legend">
+    <span><i style="background:#ffffff"></i> H</span>
+    <span><i style="background:#909090"></i> C</span>
+    <span><i style="background:#3050f8"></i> N</span>
+    <span><i style="background:#ff0d0d"></i> O</span>
+    <span><i style="background:#90e050"></i> F</span>
+    <span style="color:var(--muted)">QM9 atom decoder, Jmol colors &middot; bonds inferred from interatomic distances</span>
+  </div>
+
+  <h3 style="margin-top:2.4rem">A dozen at once</h3>
+  <p style="font-size:.92rem;color:var(--muted);margin-bottom:0">Every cell is its own viewer; rotate them independently.</p>
+  <div class="grid-wrap">
+    <div id="molgrid"><div class="nojs">Loading grid&hellip;</div></div>
+  </div>
+
+  <div class="stats" style="margin-top:1.6rem">
+    <div class="stat"><div class="v">40</div><div class="k">molecules sampled</div></div>
+    <div class="stat"><div class="v">33</div><div class="k">distinct formulas</div></div>
+    <div class="stat"><div class="v">18.0</div><div class="k">mean atoms (8.5 heavy)</div></div>
+    <div class="stat"><div class="v">40 / 40</div><div class="k">single connected fragment</div></div>
+  </div>
+  <p class="statnote">Connectivity checked with a covalent-radius cutoff over the decoded coordinates; no atom exceeds its normal valence. A 40-molecule batch, far too small for the stability and uniqueness figures the paper reports over 10,000 samples.</p>
+</div>
+</section>
+
+<!-- ============ ABSTRACT ============ -->
+<section class="sec" id="abstract">
+<div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Abstract</span></div>
+  <p>Generating chemically valid 3D molecular conformations is critical for computational drug discovery. Classical diffusion-based models like GeoLDM perform well but require hundreds of steps, making large-scale <i>in silico</i> screening impractical. Recent efforts on few-step molecular generation have accelerated this process to 12&ndash;50 steps, but they often largely sacrifice sample stability. In this work, we present FlashMol, an ultra-fast molecule generative model producing high-quality molecular conformations in as few as 4 steps. To achieve this, we adapt distribution matching distillation (DMD) &mdash; a reverse KL-divergence minimization objective &mdash; to the molecular domain for effective distillation. Considering the local minimization behavior of DMD, we respace the molecule generation timesteps, providing the generator with much better initialization and enables effective distillation. Additionally, to mitigate the mode-seeking behavior of DMD and improve diversity, we further regularize it with a Jensen-Shannon divergence term, which incorporates the mean-seeking behavior of the forward KL divergence. Extensive experiments on QM9 and GEOM-DRUG datasets demonstrate that FlashMol matches and even surpasses the original 1000-step teacher, achieving up to 250&times; acceleration in sampling speed while maintaining high molecular quality.</p>
+</div>
+</section>
+
+<!-- ============ CONTRIBUTIONS ============ -->
+<section class="sec" id="contributions">
+<div class="wrap">
+  <div class="sec-head">
+    <span class="eyebrow">Contributions</span>
+    <h2>What the paper adds</h2>
+    <p class="sec-lede">Diffusion models for 3D molecules work well and run slowly: EDM and GeoLDM need 1000 network evaluations per sample, flow-matching variants still want over a hundred, and the fastest prior methods reach 12&ndash;50 steps by giving up stability. Nothing reliably generated in ten steps or fewer. FlashMol closes that gap with four contributions.</p>
+  </div>
+  <ol class="bullets">
+    <li data-n="01">Distribution matching distillation integrated into molecular generation, on the GeoLDM latent backbone.</li>
+    <li data-n="02">Inference-time timestep scheduling identified as a key bottleneck for distillation, with an EDM-inspired respacing that improves the few-step generator even with no training and makes distillation work at all.</li>
+    <li data-n="03">The vanilla DMD objective extended with a Jensen&ndash;Shannon term, giving a unified treatment of KL-related objectives in the molecular setting.</li>
+    <li data-n="04">83.89% molecular stability on QM9 and 84.72% atom stability on GEOM-DRUG with only 4 steps.</li>
+  </ol>
+  <!--FIG_FRONT-->
+</div>
+</section>
+
+<!-- ============ BACKGROUND ============ -->
+<section class="sec" id="background">
+<div class="wrap">
+  <div class="sec-head">
+    <span class="eyebrow">Background</span>
+    <h2>Latent molecular diffusion, and DMD</h2>
+  </div>
+  <p>A molecule with <i>N</i> atoms is a point cloud <span class="mono">&#119966; = &#10216;x, h&#10217;</span> of coordinates and atom features. GeoLDM, the backbone here, encodes it into a continuous latent and decodes back, keeping the coordinate latent in the zero-center-of-mass subspace so the model is genuinely translation invariant. The denoisers are equivariant: rotating coordinate latents rotates predicted coordinates while feature channels stay fixed.</p>
+  <div class="eq"><span class="lbl">Forward process</span><i>z</i><sub>t</sub> = <i>&alpha;</i><sub>t</sub> <i>z</i><sub>0</sub> + <i>&sigma;</i><sub>t</sub> <i>&epsilon;</i>, &nbsp;<span class="op">with</span>&nbsp; <i>&epsilon;</i> ~ &#119977;(0, <i>I</i>)</div>
+
+  <h3>Distribution matching distillation</h3>
+  <p>DMD minimizes the reverse KL divergence between a few-step student and a multi-step teacher. Its gradient reduces to the gap between two score functions, evaluated on noised student samples. The teacher's score is frozen for the whole run; the student's own score has no closed form, so a proxy network stands in and has to be retrained continuously, because the student's distribution keeps moving. Following DMD2, each iteration updates that proxy for five steps before taking one generator step.</p>
+  <div class="eq"><span class="lbl">DMD gradient</span>&nabla;&#8201;&#8466;<sub>DMD</sub> = &minus; &#120124;<sub>t</sub> &#8747; ( <i>s</i><sub>real</sub> &minus; <i>s</i><sub>fake,&phi;</sub> ) <span class="op">d</span><i>G</i><sub>&theta;</sub>(<i>z</i>)/<span class="op">d</span>&theta; &nbsp;<span class="op">d</span><i>z</i></div>
+  <p>The student does not generate in one shot. It samples by consistency sampling &mdash; apply the generator, re-noise to the next level, repeat &mdash; and the number of times round that loop is the step count the whole paper is counting.</p>
+  <div class="eq"><span class="lbl">Consistency sampling</span><i>x</i><sup>t+1</sup> = <i>G</i>(<i>z</i><sup>t</sup>), &nbsp;&nbsp; <i>z</i><sup>t+1</sup> = <i>&alpha;</i><sub>t+1</sub> <i>x</i><sup>t+1</sup> + <i>&sigma;</i><sub>t+1</sub> <i>&epsilon;</i></div>
+  <p>Reverse KL is one member of the <i>f</i>-divergence family. The general gradient puts an extra weight <span class="mono">f&Prime;(r)r&sup2;</span> on that same score difference, where <i>r</i> is the teacher-to-student density ratio &mdash; the machinery the diversity fix below spends.</p>
+</div>
+</section>
+
+<!-- ============ METHOD ============ -->
+<section class="sec" id="method">
+<div class="wrap">
+  <div class="sec-head">
+    <span class="eyebrow">Method</span>
+    <h2>Geometric distribution matching distillation</h2>
+  </div>
+  <p>Training runs three models: the few-step generator, the frozen teacher score estimator, and the proxy score estimator for the student. In each iteration the generator produces latent molecules from Gaussian noise by <i>K</i>-step consistency sampling, staying in latent space without decoding, and coordinates are projected back to the zero-mean subspace at every step to hold translation invariance. The proxy updates for five steps on a diffusion loss over those samples; then both score estimators evaluate the generated latents to form the DMD gradient for a single generator update.</p>
+  <p>Equivariance survives this construction. The paper states as a proposition that the DMD gradient is invariant to SE(3) &mdash; rotating the student's samples does not change it &mdash; and argues this improves data efficiency when distilling equivariant generators. The proof uses EGNN equivariance to pull the rotation out of the generator and orthogonality to cancel the paired rotation matrices; translation comes free from the zero-center-of-mass construction, so only SO(3) needs work. At inference, the generator produces latents in <i>K</i> steps and the pretrained GeoLDM decoder turns them into coordinates and atom types. Nothing in the autoencoder is retrained.</p>
+  <!--FIG_FRAMEWORK-->
+</div>
+</section>
+
+<!-- ============ RESPACING ============ -->
+<section class="sec" id="respacing">
+<div class="wrap">
+  <div class="sec-head">
+    <span class="eyebrow">Key insight</span>
+    <h2>Respaced timesteps</h2>
+    <p class="sec-lede">The paper's central finding: few-step molecular generation is bottlenecked by <em>which</em> timesteps you sample at, and fixing that needs no retraining.</p>
+  </div>
+  <p>In theory the DMD loss is complete &mdash; with unlimited capacity its optimum aligns student and teacher almost perfectly. In practice its expectation is taken over the <em>student's</em> samples, not the data's as forward KL would be, which makes it local: if the initial student cannot produce reasonable samples, even imperfect ones, the gradient carries little information.</p>
+  <p>Molecules make that failure mode acute. Generation is highly sensitive to noise, and bond lengths and angles need fine-grained precision, so the low-noise regime cannot be skipped. Initializing a few-step student from the teacher and sampling on uniformly spaced timesteps introduces severe discretization error and largely skips exactly that regime. The resulting 4-step samples are noisy and chemically invalid, often with disconnected atoms. Training on them does not merely underperform: the authors report gradient explosions before the first epoch finishes.</p>
+  <!--FIG_SCHEDULE-->
+  <p>The fix borrows EDM's design-space analysis, which gives the noise levels that minimize truncation error. The shape is what matters: large denoising steps front-loaded at high noise, many small steps reserved for the low-noise region where fine geometry is recovered. GeoLDM inherits a variance-preserving schedule that instead spreads steps roughly uniformly in noise variance, so the fix is a change of variables rather than a new model &mdash; choose noise levels from the EDM schedule, then solve for the GeoLDM discrete step that realizes each one, and apply the result to the generator and both score estimators so training and sampling stay consistent.</p>
+  <div class="eq"><span class="lbl">Respaced timesteps</span><i>t</i>/<i>T</i> = &radic;( 1 &minus; &radic;( 1 &minus; (<i>i</i>/(<i>N</i>&minus;1))<sup>2&rho;</sup> ) )</div>
+  <p>The exponent needs retuning for molecules. EDM's default of &rho; = 7 sends more than 38% of the 1000 steps to <i>t</i> &asymp; 0, a degenerate allocation. &rho; = 2.25 still resolves the <i>t</i> &isin; [0, 300] range while staying concentrated on low noise.</p>
+  <!--FIG_RHO-->
+  <p>After respacing, samples are dramatically more stable. They are not good enough to ship &mdash; this is still the teacher sampled in four steps, before any distillation &mdash; but they are a starting point from which DMD can escape its poor initial modes, and training no longer explodes, even late in the run.</p>
+  <!--FIG_VANILLA-->
+</div>
+</section>
+
+<!-- ============ DIVERSITY ============ -->
+<section class="sec" id="diversity">
+<div class="wrap">
+  <div class="sec-head">
+    <span class="eyebrow">Method</span>
+    <h2>Diversity via <i>f</i>-divergence regularization</h2>
+  </div>
+  <p>Reverse KL punishes the student hard for placing probability mass outside the teacher's support, which is precisely what costs diversity. Jensen&ndash;Shannon divergence can be read as the mean of two KL terms, one in each direction, so it carries a forward-KL component and with it mean-seeking behavior that pulls against DMD's mode-seeking. FlashMol adds it as a regularizer rather than a replacement: the molecular setting is too noise-sensitive to optimize JS alone, so the coefficient stays small.</p>
+  <div class="eq"><span class="lbl">Final objective</span>&#8466;<sub>FlashMol</sub> = &#8466;<sub>DMD</sub> + <i>&lambda;</i> &middot; &#8466;<sub>JS</sub>, &nbsp;&nbsp;<span class="op">with</span>&nbsp; <i>&lambda;</i> = 0.1</div>
+  <p>Differentiating the JS term needs the ratio of student to teacher density for a given molecule, which is intractable. A GAN discriminator trained on generated and real molecules approximates it as <span class="mono">r &asymp; D(x)/(1&minus;D(x))</span>. To capture both coarse semantics and fine detail, the discriminator reads three intermediate layers of the proxy score network and, for each, uses cross-attention with a learnable query token to produce real/fake logits, averaging the three; R1 regularization stabilizes it.</p>
+</div>
+</section>
+
+<!-- ============ RESULTS ============ -->
+<section class="sec" id="results">
+<div class="bleed">
+  <div class="sec-head">
+    <span class="eyebrow">Results</span>
+    <h2>Unconditional generation</h2>
+    <p class="sec-lede">QM9 (130K molecules up to 29 atoms) and GEOM-DRUG (450K molecules averaging 44 atoms). Metrics follow the standard protocol: bonds are recovered from pairwise distances and atom types, and every figure is a mean over three runs of 10,000 samples. GeoLDM-respaced is the teacher sampled on FlashMol's schedule at the same budget, which separates what respacing buys from what distillation buys.</p>
+  </div>
+  <!--TABLE_MAIN-->
+  <div class="wrap" style="padding-inline:0;margin-top:1.4rem">
+    <p>Three things stand out. <b>With the fewest steps, FlashMol takes the best stability and validity on both datasets.</b> At 8 NFE on QM9 it reaches 94.87% molecule stability against the respaced teacher's 70.78% at the same budget, beating GeoRCG at 50 NFE and MOLTD at 12. On GEOM-DRUG it posts 89.98% atom stability, above the dataset's own 86.5% &mdash; worth reading carefully, since that dataset figure is itself computed by the same distance-and-lookup procedure rather than being a ceiling on correctness.</p>
+    <p><b>At 4 and 5 steps it rescues a baseline that generates almost nothing.</b> GeoLDM-respaced manages 12.43% and 27.96% molecule stability there, meaning essentially no stable molecules; FlashMol turns those into 83.89% and 87.05%, approaching 1000-NFE performance with 250&times; and 200&times; less computation.</p>
+    <p><b>Diversity is competitive but not leading.</b> The 8-step model reaches 87.51% valid-and-unique against roughly 90% for baselines. This is the known reverse-KL trade: samples outside the teacher's support incur a large penalty, so the student concentrates on high-probability modes. The JS regularizer mitigates it, and the paper then argues &mdash; as a judgment, not a measurement &mdash; that steering toward high-confidence regions is often what you want when sample quality matters more than coverage. It is the paper's weakest metric.</p>
+  </div>
+  <div class="wrap" style="padding-inline:0">
+    <!--FIG_EPOCH-->
+  </div>
+</div>
+</section>
+
+<!-- ============ CONDITIONAL ============ -->
+<section class="sec" id="conditional">
+<div class="bleed">
+  <div class="sec-head">
+    <span class="eyebrow">Results</span>
+    <h2>Conditional generation</h2>
+    <p class="sec-lede">Each property is injected as a node feature in the student, the proxy and the teacher, with a separate teacher and student trained per property and a pretrained classifier scoring the output. Because evaluation depends only on 3D coordinates, precision requirements rise, so the budget here is 32 steps rather than four &mdash; the headline few-step regime does not carry over to this task.</p>
+  </div>
+  <!--TABLE_COND-->
+  <div class="wrap" style="padding-inline:0;margin-top:1.4rem">
+    <p>FlashMol is comparable or better on nearly every property at the lowest step count. HOMO and LUMO are the cited cases: 330 meV and 489 meV against the 1000-step teacher's 340 meV and 522 meV. Note that GeoLDM-respaced at the same 32 steps is already close, so most of the conditional gain comes from respacing rather than from distillation.</p>
+  </div>
+</div>
+</section>
+
+<!-- ============ ABLATIONS ============ -->
+<section class="sec" id="ablations">
+<div class="bleed">
+  <div class="sec-head">
+    <span class="eyebrow">Ablations</span>
+    <h2>Which pieces matter</h2>
+  </div>
+  <!--TABLE_ABL-->
+  <div class="wrap" style="padding-inline:0">
+    <p><b>The schedule does most of the work.</b> On the untrained teacher, respacing with consistency sampling reaches 94.61% molecule stability at 16 steps &mdash; above MOLTD, with no distillation at all. Consistency sampling by itself adds only a small gain over DDIM, which places essentially all the credit on which timesteps are chosen.</p>
+    <p><b>The exponent has a real optimum.</b> &rho; = 2.25 is best for both stability and uniqueness. Too large concentrates steps in the low-noise regime and loses the coarse structural deformation early high-noise steps provide, collapsing to 35.23% at &rho; = 5. Too small reverts to something close to the original DDIM schedule. The curve is flat between 2 and 2.75, so the band matters more than the precise value.</p>
+    <p><b>JS helps diversity; forward KL alone breaks training.</b> DMD alone gives 81.51% stability but only 68.84% valid-and-unique &mdash; collapsed support showing up directly. Adding JS at &lambda; = 0.1 lifts both, to 83.89% and 72.70%, about four points of diversity. Substituting forward KL drops stability to 58.09%, which the paper attributes to high-variance estimation.</p>
+  </div>
+</div>
+</section>
+
+<!-- ============ LIMITATIONS ============ -->
+<section class="sec" id="limitations">
+<div class="wrap">
+  <div class="sec-head">
+    <span class="eyebrow">Limitations &amp; outlook</span>
+    <h2>Where it falls short</h2>
+  </div>
+  <ul class="bullets plain">
+    <li><b>Diversity decays with training.</b> Molecule stability keeps rising as distillation proceeds while valid-and-unique slowly declines, a known property of score-distillation objectives. It matters more for molecules than for images, because virtual screening needs chemical-space coverage; the paper's protocol therefore stops training when valid-and-unique starts to drop.</li>
+    <li><b>Generalization beyond GeoLDM is expected but untested.</b> The approach should transfer to other 3D generative models over continuous latent coordinates, such as protein&ndash;ligand co-design or conformation generation, but the latent geometry and fake-score construction would likely need rework for different equivariance groups or non-Gaussian priors.</li>
+    <li><b>Misuse profile is the teacher's.</b> FlashMol distills an existing model without adding generative capacity, so its risk profile is that of the teacher; the paper recommends standard toxicity filters, such as hERG and Ames screening, before any experimental follow-through.</li>
+  </ul>
+  <h3>Conclusion</h3>
+  <p>FlashMol gets up to 250&times; acceleration over its 1000-step GeoLDM teacher while matching or exceeding teacher-level sample quality, from two designs: an EDM-inspired respacing of the generation timesteps that supplies the few-step student with a viable initialization, and a Jensen&ndash;Shannon term that regularizes the reverse-KL objective with a forward-KL component to mitigate mode-seeking. It attains comparable quality in as few as 4 steps, and state-of-the-art molecular stability and validity on QM9 and GEOM-DRUG in 8.</p>
+</div>
+</section>
+
+<!-- ============ CITE ============ -->
+<section class="sec" id="cite">
+<div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Citation</span></div>
+<pre class="cite">@article{wei2026flashmol,
+  title   = {FlashMol: High-Quality Molecule Generation in as Few as Four Steps},
+  author  = {Wei, Xinyuan and Li, Zian and Yan, Shaoheng and Zhou, Cai and Zhang, Muhan},
+  journal = {arXiv preprint arXiv:2605.07020},
+  year    = {2026}
+}</pre>
+  <button class="btn" type="button" id="cite-copy">Copy BibTeX</button>
+  <span class="mono" id="cite-note" style="color:var(--muted);font-size:.72rem"></span>
+</div>
+</section>
+
+<footer>
+<div class="wrap">
+  <p>Figures and text drawn from the paper source. Molecules sampled for this page from <code>G_ema_5.npy</code> of <code>dmd_qm9_8step_11.0_js_1e-1_detach</code> at 8 steps.</p>
+  <p>3D rendering by 3Dmol.js. Correspondence: muhan@pku.edu.cn</p>
+</div>
+</footer>
+</main>
+
+<script id="mol-data" type="application/json">/*MOLDATA*/</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var DATA = [];
+  try {
+    DATA = JSON.parse(document.getElementById("mol-data").textContent);
+  } catch (e) { DATA = []; }
+
+  var STYLES = {
+    bs:     { stick: { radius: 0.115, colorscheme: "Jmol" }, sphere: { scale: 0.24, colorscheme: "Jmol" } },
+    stick:  { stick: { radius: 0.14, colorscheme: "Jmol" } },
+    sphere: { sphere: { scale: 0.85, colorscheme: "Jmol" } }
+  };
+  var curStyle = "bs";
+  var curIdx = 0;
+  var spinning = false;
+  var featured = null;
+
+  var GRID_PICK = [];
+  (function () {
+    // the ten stability-filtered samples, then fill to twelve with two varied ones
+    var stable = [], varied = [];
+    for (var i = 0; i < DATA.length; i++) (DATA[i].stable_set ? stable : varied).push(i);
+    GRID_PICK = stable.slice(0, 10);
+    var extras = [];
+    for (var j = 0; j < varied.length; j++) {
+      var d = DATA[varied[j]];
+      if (d.formula === "C3H4N4O" || d.formula === "C8H14O") extras.push(varied[j]);
+    }
+    while (extras.length < 2 && varied.length) extras.push(varied[extras.length]);
+    GRID_PICK = GRID_PICK.concat(extras.slice(0, 2));
+  })();
+
+  function has3Dmol() { return typeof window.$3Dmol !== "undefined" && window.$3Dmol && window.$3Dmol.createViewer; }
+
+  function detailOf(d) {
+    return d.n_atoms + " atoms · " + d.n_heavy + " heavy · " + d.n_bonds + " bonds" +
+           (d.stable_set ? " · stability-filtered" : "");
+  }
+
+  /* ---------- featured viewer ---------- */
+  function initFeatured() {
+    var host = document.getElementById("featured");
+    var fb = document.getElementById("featured-fallback");
+    if (!has3Dmol() || !DATA.length) {
+      if (fb) fb.textContent = DATA.length
+        ? "3D viewer could not load. Formulas in this batch: " + DATA.map(function (d) { return d.formula; }).join(", ")
+        : "No molecule data.";
+      return;
+    }
+    if (fb) fb.remove();
+    featured = window.$3Dmol.createViewer(host, { backgroundAlpha: 0, antialias: true });
+    document.getElementById("vm-tag").hidden = false;
+    show(0);
+  }
+
+  function show(i) {
+    if (!featured || !DATA[i]) return;
+    curIdx = i;
+    featured.clear();
+    featured.addModel(DATA[i].xyz, "xyz");
+    featured.setStyle({}, STYLES[curStyle]);
+    featured.zoomTo();
+    featured.render();
+    if (spinning) featured.spin("y");
+    document.getElementById("vm-formula").textContent = DATA[i].formula;
+    document.getElementById("vm-detail").textContent = detailOf(DATA[i]);
+    var cs = document.querySelectorAll("#chips .chip");
+    for (var k = 0; k < cs.length; k++) cs[k].setAttribute("aria-pressed", String(k === i));
+  }
+
+  /* ---------- chips ---------- */
+  (function buildChips() {
+    var host = document.getElementById("chips");
+    if (!host) return;
+    var frag = document.createDocumentFragment();
+    DATA.forEach(function (d, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.setAttribute("aria-pressed", String(i === 0));
+      b.title = d.name + " — " + detailOf(d);
+      b.innerHTML = d.stable_set ? '<span class="st">●</span> ' + d.formula : d.formula;
+      b.addEventListener("click", function () { show(i); });
+      frag.appendChild(b);
+    });
+    host.appendChild(frag);
+  })();
+
+  /* ---------- controls ---------- */
+  var segBtns = document.querySelectorAll('.seg button[data-style]');
+  for (var s = 0; s < segBtns.length; s++) {
+    segBtns[s].addEventListener("click", function () {
+      curStyle = this.getAttribute("data-style");
+      for (var k = 0; k < segBtns.length; k++) {
+        segBtns[k].setAttribute("aria-pressed", String(segBtns[k] === this));
+      }
+      if (featured) {
+        featured.setStyle({}, STYLES[curStyle]);
+        featured.render();
+      }
+      restyleGrid();
+    }.bind(segBtns[s]));
+  }
+
+  var spinBtn = document.getElementById("spin-btn");
+  if (spinBtn) spinBtn.addEventListener("click", function () {
+    spinning = !spinning;
+    spinBtn.setAttribute("aria-pressed", String(spinning));
+    if (featured) { featured.spin(spinning ? "y" : false); }
+  });
+
+  function flash(el, msg) {
+    if (!el) return;
+    el.textContent = msg;
+    setTimeout(function () { el.textContent = ""; }, 2400);
+  }
+  function selectFallback(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    setTimeout(function () { ta.remove(); }, 8000);
+  }
+  function copyText(text, noteEl) {
+    var note = document.getElementById(noteEl);
+    try {
+      navigator.clipboard.writeText(text).then(
+        function () { flash(note, "copied"); },
+        function () { flash(note, "press ⌘C to copy the selection"); selectFallback(text); }
+      );
+    } catch (e) { flash(note, "press ⌘C to copy the selection"); selectFallback(text); }
+  }
+
+  var copyBtn = document.getElementById("copy-btn");
+  if (copyBtn) copyBtn.addEventListener("click", function () {
+    if (DATA[curIdx]) copyText(DATA[curIdx].xyz, "copy-note");
+  });
+  var citeBtn = document.getElementById("cite-copy");
+  if (citeBtn) citeBtn.addEventListener("click", function () {
+    var pre = document.querySelector("pre.cite");
+    if (pre) copyText(pre.textContent, "cite-note");
+  });
+
+  /* ---------- grid of viewers (one shared WebGL context) ---------- */
+  var gridViewers = [];
+  var gridCols = 0;
+
+  function colsFor(w) { return w < 520 ? 1 : (w < 860 ? 2 : 3); }
+
+  function buildGrid() {
+    var host = document.getElementById("molgrid");
+    var wrap = document.querySelector(".grid-wrap");
+    if (!host || !wrap) return;
+    if (!has3Dmol() || !DATA.length) {
+      host.innerHTML = '<div class="nojs">3D grid could not load.</div>';
+      return;
+    }
+    var w = host.clientWidth || 600;
+    var cols = colsFor(w);
+    var n = GRID_PICK.length;
+    var rows = Math.ceil(n / cols);
+    gridCols = cols;
+
+    var cellH = cols === 1 ? 240 : 200;
+    host.style.height = rows * cellH + "px";
+    host.innerHTML = "";
+    var old = wrap.querySelectorAll(".cell-label");
+    for (var o = 0; o < old.length; o++) old[o].remove();
+
+    var vs;
+    try {
+      vs = window.$3Dmol.createViewerGrid(host, { rows: rows, cols: cols, control_all: false }, { backgroundAlpha: 0, antialias: true });
+    } catch (e) {
+      host.innerHTML = '<div class="nojs">3D grid could not load.</div>';
+      return;
+    }
+    // normalize to a flat array in row-major order
+    var flat = [];
+    if (vs && vs.length && Array.isArray(vs[0])) {
+      for (var r = 0; r < vs.length; r++) for (var c = 0; c < vs[r].length; c++) flat.push(vs[r][c]);
+    } else if (vs && vs.length) {
+      flat = Array.prototype.slice.call(vs);
+    }
+    gridViewers = [];
+
+    for (var i = 0; i < n && i < flat.length; i++) {
+      var v = flat[i];
+      var d = DATA[GRID_PICK[i]];
+      if (!v || !d) continue;
+      v.addModel(d.xyz, "xyz");
+      v.setStyle({}, STYLES[curStyle]);
+      v.zoomTo();
+      v.render();
+      gridViewers.push(v);
+
+      var row = Math.floor(i / cols), col = i % cols;
+      var lab = document.createElement("div");
+      lab.className = "cell-label";
+      lab.style.left = (col / cols * 100) + "%";
+      lab.style.top = "calc(" + (row / rows * 100) + "% + 2px)";
+      lab.innerHTML = d.formula + '<span class="n">' + d.n_atoms + " atoms" + (d.stable_set ? " · filtered" : "") + "</span>";
+      wrap.appendChild(lab);
+    }
+  }
+
+  function restyleGrid() {
+    for (var i = 0; i < gridViewers.length; i++) {
+      gridViewers[i].setStyle({}, STYLES[curStyle]);
+      gridViewers[i].render();
+    }
+  }
+
+  var rt = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () {
+      var host = document.getElementById("molgrid");
+      if (host && colsFor(host.clientWidth || 600) !== gridCols) buildGrid();
+    }, 260);
+  });
+
+  /* ---------- contents bar: highlight the section in view ---------- */
+  function initScrollSpy() {
+    var links = document.querySelectorAll(".nav-inner a[href^='#']");
+    if (!links.length || !window.IntersectionObserver) return;
+    var byId = {};
+    var targets = [];
+    for (var i = 0; i < links.length; i++) {
+      var id = links[i].getAttribute("href").slice(1);
+      var el = document.getElementById(id);
+      if (!el) continue;
+      byId[id] = links[i];
+      targets.push(el);
+    }
+    var visible = {};
+    var obs = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        visible[entries[i].target.id] = entries[i].isIntersecting;
+      }
+      var current = null;
+      for (var j = 0; j < targets.length; j++) {
+        if (visible[targets[j].id]) { current = targets[j].id; break; }
+      }
+      for (var k in byId) {
+        if (Object.prototype.hasOwnProperty.call(byId, k)) {
+          if (k === current) { byId[k].setAttribute("aria-current", "true"); }
+          else { byId[k].removeAttribute("aria-current"); }
+        }
+      }
+      if (current && byId[current] && byId[current].scrollIntoView) {
+        var bar = document.querySelector(".nav-inner");
+        if (bar && bar.scrollWidth > bar.clientWidth) {
+          var a = byId[current];
+          var left = a.offsetLeft - bar.clientWidth / 2 + a.offsetWidth / 2;
+          bar.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+        }
+      }
+    }, { rootMargin: "-56px 0px -65% 0px", threshold: 0 });
+    for (var t = 0; t < targets.length; t++) obs.observe(targets[t]);
+  }
+
+  function start() { initFeatured(); buildGrid(); initScrollSpy(); }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else { start(); }
+})();
+</script>
